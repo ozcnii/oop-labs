@@ -5,7 +5,11 @@
 #define MAX_SENTENCE_INPUT_LENGTH 80
 #define INITIAL_WORDS_ARRAY_CAPACITY 10
 
-// my_strrev, так как это нестандартная функция
+/**
+ * @brief Переворачивает порядок символов в строке (модифицирует исходную строку).
+ * @param str Указатель на строку, которую нужно перевернуть.
+ * @return Указатель на ту же, но уже перевернутую строку.
+ */
 char *my_strrev(char *str)
 {
     if (!str || !*str)
@@ -22,7 +26,12 @@ char *my_strrev(char *str)
     return str;
 }
 
-// const void* требует стандартная функция qsort
+/**
+ * @brief Функция-компаратор для qsort, сравнивающая две строки по их длине.
+ * @param a Указатель на первый элемент для сравнения (char**).
+ * @param b Указатель на второй элемент для сравнения (char**).
+ * @return Отрицательное значение, если длина a < b; ноль, если a == b; положительное, если a > b.
+ */
 int compareWordStringsByLength(const void *a, const void *b)
 {
     const char *strA = *(const char **)a;
@@ -38,6 +47,10 @@ private:
     int wordCount;
     int wordCapacity;
 
+    /**
+     * @brief Добавляет новое слово в динамический массив слов, при необходимости увеличивая его емкость.
+     * @param token Указатель на строку (слово), которую нужно добавить.
+     */
     void AddWordString(char *token)
     {
         if (wordCount == wordCapacity)
@@ -62,6 +75,9 @@ private:
         wordCount++;
     }
 
+    /**
+     * @brief Считывает строку-предложение со стандартного ввода с помощью getchar.
+     */
     void InputRawString()
     {
         printf("Введите предложение (не более %d символов, слова разделены пробелами):\n", MAX_SENTENCE_INPUT_LENGTH);
@@ -88,6 +104,9 @@ private:
     }
 
 public:
+    /**
+     * @brief Конструктор по умолчанию. Инициализирует объект, запрашивает у пользователя ввод предложения и разбирает его на слова.
+     */
     Sentence()
     {
         string = NULL;
@@ -105,6 +124,11 @@ public:
         FormSetOfWords();
     }
 
+    /**
+     * @brief Параметризованный конструктор. Создает объект Sentence из уже существующего массива слов.
+     * @param sourceWordStrings Массив указателей на строки-слова.
+     * @param count Количество слов в массиве.
+     */
     Sentence(char **sourceWordStrings, int count)
     {
         string = NULL;
@@ -129,6 +153,9 @@ public:
         }
     }
 
+    /**
+     * @brief Деструктор. Освобождает всю динамически выделенную память для предотвращения утечек.
+     */
     ~Sentence()
     {
         if (string)
@@ -151,6 +178,9 @@ public:
         }
     }
 
+    /**
+     * @brief Разбивает исходную строку-предложение на отдельные слова и сохраняет их в массив.
+     */
     void FormSetOfWords()
     {
         if (!string)
@@ -177,11 +207,17 @@ public:
         free(temp_sentence_copy);
     }
 
+    /**
+     * @brief Сортирует массив слов по возрастанию их длины.
+     */
     void SortWords()
     {
         qsort(words, wordCount, sizeof(char *), compareWordStringsByLength);
     }
 
+    /**
+     * @brief Переворачивает символы в каждом слове и формирует из них новую строку-предложение.
+     */
     void ReverseWords()
     {
         if (!words || wordCount == 0)
@@ -244,6 +280,9 @@ public:
         }
     }
 
+    /**
+     * @brief Выводит текущую строку-предложение на консоль.
+     */
     void PrintSentenceString()
     {
         if (string && strlen(string) > 0)
@@ -256,22 +295,36 @@ public:
         }
     }
 
+    /**
+     * @brief Возвращает указатель на массив слов.
+     * @return Указатель на массив char*.
+     */
     char **GetWords()
     {
         return words;
     }
 
+    /**
+     * @brief Возвращает количество слов в предложении.
+     * @return Целое число - количество слов.
+     */
     int GetWordsCount()
     {
         return wordCount;
     }
 };
 
+/**
+ * @brief Главная функция программы. Создает объекты, управляет их обработкой и выводом результата для решения варианта №20.
+ */
 int main()
 {
+    // Использовать кириллицу для консольного ввода/вывода в Windows
+    system("chcp 1251");
+
     Sentence originalSentence;
 
-    printf("Исходное предложение:\n");
+    printf("\nИсходное предложение:\n");
     originalSentence.PrintSentenceString();
 
     Sentence newSentence(originalSentence.GetWords(), originalSentence.GetWordsCount());
@@ -280,13 +333,11 @@ int main()
 
     newSentence.ReverseWords();
 
-    printf("\nНовое предложение (слова по длине, символы перевернуты):\n");
+    printf("\nНовое предложение (слова отсортированы по длине, символы в словах в обратном порядке):\n");
     newSentence.PrintSentenceString();
 
-    printf("\nНажмите Enter для завершения...");
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF)
-        ; // пауза консоли
+    // Задержать консоль на экране перед завершением программы
+    system("pause");
 
     return 0;
 }
