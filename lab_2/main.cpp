@@ -6,12 +6,20 @@
 #define MAX_LINE_LENGTH 1024
 #define INITIAL_STATS_CAPACITY 10
 
+// Структура для хранения статистики по одной строке файла.
 typedef struct
 {
     int lineNumber;
     int duplicateCharCount;
 } LineStat;
 
+/**
+ * @brief Функция сравнения для qsort. Она является глобальной, так как используется
+ *        внешней функцией qsort и не привязана к классу.
+ * @param a Указатель на первый элемент (LineStat).
+ * @param b Указатель на второй элемент (LineStat).
+ * @return <0 если a < b, 0 если a == b, >0 если a > b по полю duplicateCharCount.
+ */
 int compareLineStats(const void *a, const void *b)
 {
     const LineStat *statA = (const LineStat *)a;
@@ -19,6 +27,9 @@ int compareLineStats(const void *a, const void *b)
     return statA->duplicateCharCount - statB->duplicateCharCount;
 }
 
+/**
+ * @brief Класс, отвечающий за анализ файла и хранение данных.
+ */
 class FileAnalyzer
 {
 private:
@@ -27,13 +38,16 @@ private:
     int lineCount;
     int capacity;
 
+    /**
+     * @brief Запрашивает у пользователя имя файла и сохраняет его в поле filename.
+     */
     void GetFilenameFromUser()
     {
         char buffer[MAX_FILENAME_LENGTH];
         printf("Введите имя файла для анализа (например, test.txt):\n>>> ");
         if (fgets(buffer, sizeof(buffer), stdin) != NULL)
         {
-            buffer[strcspn(buffer, "\n")] = 0;
+            buffer[strcspn(buffer, "\n")] = 0; // Убираем символ новой строки
         }
         else
         {
@@ -49,6 +63,11 @@ private:
         strcpy(filename, buffer);
     }
 
+    /**
+     * @brief Подсчитывает количество уникальных символов, которые встречаются в строке более одного раза.
+     * @param line Строка для анализа.
+     * @return Количество символов-дубликатов.
+     */
     int CountDuplicateChars(const char *line)
     {
         int counts[256] = {0};
@@ -67,6 +86,10 @@ private:
         return duplicateCount;
     }
 
+    /**
+     * @brief Добавляет новую запись статистики в динамический массив, при необходимости увеличивая его емкость.
+     * @param newStat Новая структура для добавления.
+     */
     void AddStat(LineStat newStat)
     {
         if (lineCount == capacity)
@@ -85,6 +108,9 @@ private:
     }
 
 public:
+    /**
+     * @brief Конструктор класса. Инициализирует поля, выделяет начальную память и запрашивает имя файла.
+     */
     FileAnalyzer()
     {
         filename = NULL;
@@ -99,6 +125,9 @@ public:
         GetFilenameFromUser();
     }
 
+    /**
+     * @brief Деструктор класса. Освобождает всю выделенную динамическую память.
+     */
     ~FileAnalyzer()
     {
         if (filename)
@@ -113,6 +142,9 @@ public:
         }
     }
 
+    /**
+     * @brief Основной метод анализа. Открывает файл, читает его построчно и заполняет набор статистики.
+     */
     void Analyze()
     {
         FILE *file_ptr = fopen(filename, "r");
@@ -121,9 +153,9 @@ public:
             perror("Не удалось открыть файл");
             return;
         }
-        printf("\nАнализ файла '%s'...\n", filename);
         char lineBuffer[MAX_LINE_LENGTH];
         int currentLineNumber = 0;
+        printf("\nАнализ файла '%s'...\n", filename);
         while (fgets(lineBuffer, sizeof(lineBuffer), file_ptr) != NULL)
         {
             currentLineNumber++;
@@ -135,10 +167,28 @@ public:
         printf("Анализ завершен. Обработано строк: %d\n", lineCount);
     }
 
-    LineStat *getStats() { return stats; }
-    int getLineCount() { return lineCount; }
+    /**
+     * @brief Предоставляет доступ к набору статистики для внешних операций (например, сортировки).
+     * @return Указатель на начало массива LineStat.
+     */
+    LineStat *getStats()
+    {
+        return stats;
+    }
 
-    void PrintStats()
+    /**
+     * @brief Возвращает текущее количество записей в наборе статистики.
+     * @return Количество обработанных строк.
+     */
+    int getLineCount() const
+    {
+        return lineCount;
+    }
+
+    /**
+     * @brief Выводит содержимое набора статистики на экран в простом формате.
+     */
+    void PrintStats() const
     {
         if (lineCount == 0)
         {
@@ -155,26 +205,24 @@ public:
 
 int main()
 {
-    // 1. Создаем объект, который отвечает за анализ файла
+    // 1 Создание объекта и подготовка к работе
     FileAnalyzer analyzer;
 
-    // 2. Вызываем метод, который заполняет объект данными из файла
+    // 2 Выполнение анализа файла
     analyzer.Analyze();
 
-    // 3. Сортировка
-    LineStat *dataToSort = analyzer.getStats();
-    int dataCount = analyzer.getLineCount();
-
-    if (dataCount > 0)
+    // 3 Внешняя сортировка полученных данных ---
+    if (analyzer.getLineCount() > 0)
     {
-        qsort(dataToSort, dataCount, sizeof(LineStat), compareLineStats);
-        printf("\nДанные были отсортированы.\n");
+        qsort(analyzer.getStats(), analyzer.getLineCount(), sizeof(LineStat), compareLineStats);
     }
 
-    // 4. Вызываем метод объекта для печати результата
+    // 4 Вывод отсортированного результата ---
     analyzer.PrintStats();
 
+    // 5 Завершение работы ---
     printf("\nНажмите Enter для завершения...");
     getchar();
+
     return 0;
 }
