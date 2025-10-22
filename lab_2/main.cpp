@@ -180,7 +180,7 @@ public:
      * @brief Возвращает текущее количество записей в наборе статистики.
      * @return Количество обработанных строк.
      */
-    int getLineCount() const
+    int getLineCount()
     {
         return lineCount;
     }
@@ -188,7 +188,7 @@ public:
     /**
      * @brief Выводит содержимое набора статистики на экран в простом формате.
      */
-    void PrintStats() const
+    void PrintStats()
     {
         if (lineCount == 0)
         {
@@ -205,22 +205,22 @@ public:
 
 int main()
 {
-    // 1 Создание объекта и подготовка к работе
+    // 1 Создание объекта (Запрашивает у пользователя имя файла и сохраняет его в поле filename)
     FileAnalyzer analyzer;
 
-    // 2 Выполнение анализа файла
+    // 2 Выполнение анализа файла (Открывает файл, читает его построчно и заполняет набор статистики)
     analyzer.Analyze();
 
-    // 3 Внешняя сортировка полученных данных ---
+    // 3 Внешняя сортировка полученных данных
     if (analyzer.getLineCount() > 0)
     {
         qsort(analyzer.getStats(), analyzer.getLineCount(), sizeof(LineStat), compareLineStats);
     }
 
-    // 4 Вывод отсортированного результата ---
+    // 4 уывыву отсортированного результата
     analyzer.PrintStats();
 
-    // 5 Завершение работы ---
+    // 5 Завершение работы
     printf("\nНажмите Enter для завершения...");
     getchar();
 

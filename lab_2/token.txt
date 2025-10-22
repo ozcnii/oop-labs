@@ -1,0 +1,17 @@
+{
+  "grant_type": "client_credentials",
+  "client_id": "68b6c835ece3e83a07f152c1",
+  "client_secret": "68b6c835ece3e83a07f152c1",
+  "additional_props": {
+    "partner_user_id": "507f1f77bcf86cd799439001",
+    "node_id": "68b6c836ece3e83a07f152ca",
+    "partner_id": "68b6c835ece3e83a07f152c1",
+    "game_id": "68b5e06b60f5b09e7c2b0fd3",
+    "currency_code": "USD",
+    "partner_session": "123",
+    "session_id": "68b6c835ece3e83a07f152c1",
+    "min_bet_limit": "10",
+    "max_bet_limit": "500",
+    "is_test_user": "false"
+  }
+}
