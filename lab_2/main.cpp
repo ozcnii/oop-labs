@@ -217,7 +217,7 @@ int main()
         qsort(analyzer.getStats(), analyzer.getLineCount(), sizeof(LineStat), compareLineStats);
     }
 
-    // 4 уывыву отсортированного результата
+    // 4 Печать отсортированного результата
     analyzer.PrintStats();
 
     // 5 Завершение работы
