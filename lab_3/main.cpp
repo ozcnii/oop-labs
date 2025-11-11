@@ -7,6 +7,7 @@
 const char *FIO_FILE = "FIO.DAT";
 const char *GROUP_FILE = "GROUP.DAT";
 const char *LINK_FILE = "LINK.IDX";
+const int MAX_RECORD_LENGTH = 100;
 
 // Вспомогательная функция для очистки буфера ввода
 void clear_input_buffer()
@@ -32,32 +33,53 @@ private:
     FILE *groupFile;
     FILE *linkFile;
 
+    /**
+     * @brief Проверяет, существует ли указанная группа.
+     */
     bool isGroupExists(const char *groupNumber)
     {
-        rewind(groupFile);
-        char buffer[100];
+        if (fseek(groupFile, 0, SEEK_SET) != 0)
+        {
+            perror("Ошибка при позиционировании в файле групп");
+            return false;
+        }
+        char buffer[MAX_RECORD_LENGTH];
         while (fgets(buffer, sizeof(buffer), groupFile) != NULL)
         {
             buffer[strcspn(buffer, "\n")] = 0;
             if (strcmp(buffer, groupNumber) == 0)
                 return true;
         }
+        if (ferror(groupFile))
+        {
+            perror("Ошибка чтения файла групп");
+            return false;
+        }
         return false;
     }
 
     /**
-     * @brief Находит индекс группы по ее номеру.
+     * @brief Находит адрес записи группы по ее номеру.
      * @param groupNumber Номер группы для поиска.
-     * @return Адрес группы в файле или -1, если группа не найдена.
+     * @return Позиция в файле или -1, если не найдено.
      */
     long findGroupAddress(const char *groupNumber)
     {
-        rewind(groupFile);
-        char buffer[100];
+        if (fseek(groupFile, 0, SEEK_SET) != 0)
+        {
+            perror("Ошибка при позиционировании в файле групп");
+            return -1;
+        }
+        char buffer[MAX_RECORD_LENGTH];
         long position;
         while (!feof(groupFile))
         {
             position = ftell(groupFile);
+            if (position == -1L)
+            {
+                perror("Ошибка при получении позиции в файле групп");
+                return -1;
+            }
             if (fgets(buffer, sizeof(buffer), groupFile) != NULL)
             {
                 buffer[strcspn(buffer, "\n")] = 0;
@@ -67,49 +89,93 @@ private:
                 }
             }
         }
+        if (ferror(groupFile))
+        {
+            perror("Ошибка чтения файла групп");
+            return -1;
+        }
         return -1; // Группа не найдена
     }
 
 public:
+    /**
+     * @brief Конструктор базы данных. Открывает или создает все файлы.
+     */
     StudentGroupDB()
     {
         fioFile = fopen(FIO_FILE, "a+");
-        groupFile = fopen(GROUP_FILE, "a+");
-        linkFile = fopen(LINK_FILE, "ab+");
-
-        if (!fioFile || !groupFile || !linkFile)
+        if (!fioFile)
         {
-            printf("Критическая ошибка: не удалось открыть файлы базы данных.\n");
+            perror("Критическая ошибка: не удалось открыть файл FIO.DAT");
+            exit(1);
+        }
+
+        groupFile = fopen(GROUP_FILE, "a+");
+        if (!groupFile)
+        {
+            perror("Критическая ошибка: не удалось открыть файл GROUP.DAT");
+            if (fioFile)
+                fclose(fioFile);
+            exit(1);
+        }
+
+        linkFile = fopen(LINK_FILE, "ab+");
+        if (!linkFile)
+        {
+            perror("Критическая ошибка: не удалось открыть файл LINK.IDX");
+            if (fioFile)
+                fclose(fioFile);
+            if (groupFile)
+                fclose(groupFile);
             exit(1);
         }
     }
 
+    /**
+     * @brief Деструктор базы данных. Закрывает все открытые файлы.
+     */
     ~StudentGroupDB()
     {
         if (fioFile)
         {
-            fclose(fioFile);
+            if (fclose(fioFile) != 0)
+            {
+                perror("Ошибка при закрытии файла FIO.DAT");
+            }
             fioFile = NULL;
         }
         if (groupFile)
         {
-            fclose(groupFile);
+            if (fclose(groupFile) != 0)
+            {
+                perror("Ошибка при закрытии файла GROUP.DAT");
+            }
             groupFile = NULL;
         }
         if (linkFile)
         {
-            fclose(linkFile);
+            if (fclose(linkFile) != 0)
+            {
+                perror("Ошибка при закрытии файла LINK.IDX");
+            }
             linkFile = NULL;
         }
         printf("Файлы базы данных закрыты.\n");
     }
 
-    // 1. Процедура "Добавление новой группы"
+    /**
+     * @brief Добавляет новую группу в файл GROUP.DAT
+     */
     void addGroup()
     {
-        char newGroupNumber[100];
+        char newGroupNumber[MAX_RECORD_LENGTH];
         printf("Введите номер новой группы: ");
-        scanf("%99s", newGroupNumber);
+        if (scanf("%99s", newGroupNumber) != 1)
+        {
+            printf("Ошибка: не удалось прочитать номер группы.\n");
+            clear_input_buffer();
+            return;
+        }
         clear_input_buffer();
 
         if (isGroupExists(newGroupNumber))
@@ -118,17 +184,40 @@ public:
             return;
         }
 
-        fseek(groupFile, 0, SEEK_END);
-        fprintf(groupFile, "%s\n", newGroupNumber);
+        if (fseek(groupFile, 0, SEEK_END) != 0)
+        {
+            perror("Ошибка при позиционировании в конец файла групп");
+            return;
+        }
+
+        if (fprintf(groupFile, "%s\n", newGroupNumber) < 0)
+        {
+            perror("Ошибка при записи группы в файл");
+            return;
+        }
+
+        if (fflush(groupFile) != 0)
+        {
+            perror("Ошибка при сохранении данных группы");
+            return;
+        }
+
         printf("Группа '%s' успешно добавлена.\n", newGroupNumber);
     }
 
-    // 2. Процедура "Включение новой фамилии студента с указанием группы"
+    /**
+     * @brief Добавляет студента и связывает его с существующей группой.
+     */
     void addStudentWithLink()
     {
         char targetGroupNumber[100];
         printf("Введите НОМЕР группы для нового студента: ");
-        scanf("%99s", targetGroupNumber);
+        if (scanf("%99s", targetGroupNumber) != 1)
+        {
+            printf("Ошибка: не удалось прочитать номер группы.\n");
+            clear_input_buffer();
+            return;
+        }
         clear_input_buffer();
 
         long group_idx = findGroupAddress(targetGroupNumber);
@@ -138,28 +227,77 @@ public:
             return;
         }
 
-        char newStudentName[100];
+        char newStudentName[MAX_RECORD_LENGTH];
         printf("Введите фамилию студента: ");
-        scanf("%99s", newStudentName);
+        if (scanf("%99s", newStudentName) != 1)
+        {
+            printf("Ошибка: не удалось прочитать фамилию студента.\n");
+            clear_input_buffer();
+            return;
+        }
         clear_input_buffer();
 
-        fseek(fioFile, 0, SEEK_END);
-        unsigned long student_idx = ftell(fioFile);
-        fprintf(fioFile, "%s\n", newStudentName);
+        if (fseek(fioFile, 0, SEEK_END) != 0)
+        {
+            perror("Ошибка при позиционировании в конец файла ФИО");
+            return;
+        }
 
-        Link newLink = {(unsigned long)student_idx, (unsigned long)group_idx};
-        fseek(linkFile, 0, SEEK_END);
-        fwrite(&newLink, sizeof(Link), 1, linkFile);
+        long student_idx_long = ftell(fioFile);
+        if (student_idx_long == -1L)
+        {
+            perror("Ошибка при получении позиции в файле ФИО");
+            return;
+        }
+        unsigned long student_idx = (unsigned long)student_idx_long;
+
+        if (fprintf(fioFile, "%s\n", newStudentName) < 0)
+        {
+            perror("Ошибка при записи ФИО студента в файл");
+            return;
+        }
+
+        if (fflush(fioFile) != 0)
+        {
+            perror("Ошибка при сохранении данных студента");
+            return;
+        }
+
+        Link newLink = {student_idx, (unsigned long)group_idx};
+        if (fseek(linkFile, 0, SEEK_END) != 0)
+        {
+            perror("Ошибка при позиционировании в конец файла связей");
+            return;
+        }
+
+        if (fwrite(&newLink, sizeof(Link), 1, linkFile) != 1)
+        {
+            perror("Ошибка при записи связи студент-группа");
+            return;
+        }
+
+        if (fflush(linkFile) != 0)
+        {
+            perror("Ошибка при сохранении связи");
+            return;
+        }
 
         printf("Студент '%s' успешно добавлен и привязан к группе '%s'.\n", newStudentName, targetGroupNumber);
     }
 
-    // 3. Процедура "Поиск студентов по группе"
+    /**
+     * @brief Выводит студентов, принадлежащих указанной группе.
+     */
     void findStudentsByGroup()
     {
         char targetGroupNumber[100];
         printf("Введите НОМЕР группы для вывода списка студентов: ");
-        scanf("%99s", targetGroupNumber);
+        if (scanf("%99s", targetGroupNumber) != 1)
+        {
+            printf("Ошибка: не удалось прочитать номер группы.\n");
+            clear_input_buffer();
+            return;
+        }
         clear_input_buffer();
 
         long group_idx = findGroupAddress(targetGroupNumber);
@@ -171,7 +309,12 @@ public:
 
         printf("\nСтуденты в группе '%s':\n", targetGroupNumber);
 
-        rewind(linkFile);
+        if (fseek(linkFile, 0, SEEK_SET) != 0)
+        {
+            perror("Ошибка при позиционировании в файле связей");
+            return;
+        }
+
         Link currentLink;
         int count = 0;
 
@@ -179,30 +322,57 @@ public:
         {
             if (currentLink.group_idx == (unsigned long)group_idx)
             {
-                fseek(fioFile, currentLink.student_idx, SEEK_SET);
-                char studentBuffer[100];
+                if (fseek(fioFile, currentLink.student_idx, SEEK_SET) != 0)
+                {
+                    perror("Ошибка при позиционировании в файле ФИО");
+                    continue;
+                }
+                char studentBuffer[MAX_RECORD_LENGTH];
                 if (fgets(studentBuffer, sizeof(studentBuffer), fioFile) != NULL)
                 {
                     studentBuffer[strcspn(studentBuffer, "\n")] = 0;
                     printf("- %s\n", studentBuffer);
                     count++;
                 }
+                else if (ferror(fioFile))
+                {
+                    perror("Ошибка чтения ФИО студента");
+                    continue;
+                }
             }
         }
+
+        if (ferror(linkFile))
+        {
+            perror("Ошибка чтения файла связей");
+            return;
+        }
+
         if (count == 0)
             printf("В этой группе нет студентов.\n");
     }
 
-    // Вспомогательная функция для вывода списка групп (по заданию не обязательна, но полезна)
+    /**
+     * @brief Показывает список всех групп, сохраненных в базе.
+     */
     void listGroups()
     {
         printf("\n--- Текущий список групп ---\n");
-        rewind(groupFile);
+        if (fseek(groupFile, 0, SEEK_SET) != 0)
+        {
+            perror("Ошибка при позиционировании в файле групп");
+            return;
+        }
         char buffer[100];
         while (fgets(buffer, sizeof(buffer), groupFile) != NULL)
         {
             buffer[strcspn(buffer, "\n")] = 0;
             printf("- %s\n", buffer);
+        }
+        if (ferror(groupFile))
+        {
+            perror("Ошибка чтения файла групп");
+            return;
         }
         printf("-----------------------------\n");
     }
@@ -210,11 +380,14 @@ public:
 
 int main()
 {
+    // 1 Создаем объект базы данных (инициализирует файлы и проверяет доступность)
     StudentGroupDB database;
     int choice = -1;
 
+    // 2 Запускаем основной цикл меню (позволяет пользователю выбирать операции)
     do
     {
+        // 2.1 Очищаем экран и выводим список доступных действий
         system("clear || cls");
         printf("--- Меню ---\n");
         printf("1. Добавить новую группу\n");
@@ -226,10 +399,12 @@ int main()
 
         if (scanf("%d", &choice) != 1)
         {
+            printf("Ошибка: введено некорректное значение. Пожалуйста, введите число.\n");
             choice = -1;
         }
         clear_input_buffer();
 
+        // 2.2 Обрабатываем выбранный пункт меню и вызываем соответствующую процедуру
         switch (choice)
         {
         case 1:
@@ -252,6 +427,7 @@ int main()
             break;
         }
 
+        // 2.3 При необходимости ждем подтверждение пользователя перед повторным показом меню
         if (choice != 0)
         {
             printf("\nНажмите Enter, чтобы продолжить...");
@@ -260,5 +436,6 @@ int main()
 
     } while (choice != 0);
 
+    // 3 Завершаем работу программы
     return 0;
 }
