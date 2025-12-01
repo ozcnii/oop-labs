@@ -82,7 +82,7 @@ public:
 
         std::cout << "\n--- Спортсмены в виде спорта '" << currentSportName << "' ---" << std::endl;
         bool found = false;
-        for (const auto &link : links)
+        for (auto &link : links)
         {
             if (link.second == sportIndex)
             {
@@ -109,7 +109,7 @@ public:
         customQuickSortLinks(sortedLinks, 0, sortedLinks.size() - 1);
 
         std::cout << "\n--- Все спортсмены (отсортировано по ФИО) ---" << std::endl;
-        for (const auto &link : sortedLinks)
+        for (auto &link : sortedLinks)
         {
             int athleteIdx = link.first;
             int sportIdx = link.second;
@@ -132,7 +132,7 @@ public:
             throw std::runtime_error("Ошибка: Вид спорта не найден.");
 
         std::vector<std::pair<int, int>> filteredLinks;
-        for (const auto &link : links)
+        for (auto &link : links)
         {
             if (link.second == sportIndex)
             {
@@ -149,7 +149,7 @@ public:
         customQuickSortLinks(filteredLinks, 0, filteredLinks.size() - 1);
 
         std::cout << "\n--- Спортсмены в виде спорта '" << currentSportName << "' (отсортировано по ФИО) ---" << std::endl;
-        for (const auto &link : filteredLinks)
+        for (auto &link : filteredLinks)
         {
             std::cout << "- " << athleteNames[link.first] << std::endl;
         }
@@ -167,9 +167,9 @@ private:
     /**
      * @brief Ищет индекс спортсмена по его ФИО.
      */
-    int findAthlete(const std::string &name)
+    int findAthlete(std::string &name)
     {
-        for (size_t i = 0; i < athleteNames.size(); ++i)
+        for (int i = 0; i < athleteNames.size(); ++i)
         {
             if (athleteNames[i] == name)
                 return i;
@@ -180,9 +180,9 @@ private:
     /**
      * @brief Ищет индекс вида спорта по его названию.
      */
-    int findSport(const std::string &name)
+    int findSport(std::string &name)
     {
-        for (size_t i = 0; i < sportNames.size(); ++i)
+        for (int i = 0; i < sportNames.size(); ++i)
         {
             if (sportNames[i] == name)
                 return i;
@@ -193,7 +193,7 @@ private:
     /**
      * @brief Находит или создает новый вид спорта.
      */
-    int getOrCreateSport(const std::string &name)
+    int getOrCreateSport(std::string &name)
     {
         int sportIndex = findSport(name);
         if (sportIndex == -1)
@@ -298,7 +298,7 @@ int main()
                 std::cout << "Неверный выбор.\n";
             }
         }
-        catch (const std::exception &e)
+        catch (std::exception &e)
         {
             std::cerr << "Произошла ошибка: " << e.what() << std::endl;
         }

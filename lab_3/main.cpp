@@ -264,11 +264,6 @@ public:
         }
 
         Link newLink = {student_idx, (unsigned long)group_idx};
-        if (fseek(linkFile, 0, SEEK_END) != 0)
-        {
-            perror("Ошибка при позиционировании в конец файла связей");
-            return;
-        }
 
         if (fwrite(&newLink, sizeof(Link), 1, linkFile) != 1)
         {
@@ -308,12 +303,6 @@ public:
         }
 
         printf("\nСтуденты в группе '%s':\n", targetGroupNumber);
-
-        if (fseek(linkFile, 0, SEEK_SET) != 0)
-        {
-            perror("Ошибка при позиционировании в файле связей");
-            return;
-        }
 
         Link currentLink;
         int count = 0;
