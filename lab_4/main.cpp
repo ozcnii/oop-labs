@@ -326,7 +326,11 @@ int main()
                 std::cout << "Неверный выбор.\n";
             }
         }
-        catch (char *e)
+        catch (const char *e)
+        {
+            std::cerr << "Произошла ошибка: " << e << std::endl;
+        }
+        catch (std::string e)
         {
             std::cerr << "Произошла ошибка: " << e << std::endl;
         }
