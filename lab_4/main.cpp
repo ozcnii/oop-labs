@@ -18,14 +18,14 @@ public:
         std::cout << "Введите ФИО спортсмена: ";
         std::getline(std::cin, currentAthleteName);
         if (currentAthleteName.empty())
-            throw std::invalid_argument("Ошибка: ФИО не может быть пустым.");
+            throw("Ошибка: ФИО не может быть пустым.");
         if (findAthlete(currentAthleteName) != -1)
-            throw std::runtime_error("Ошибка: Спортсмен уже существует.");
+            throw("Ошибка: Спортсмен уже существует.");
 
         std::cout << "Введите вид спорта: ";
         std::getline(std::cin, currentSportName);
         if (currentSportName.empty())
-            throw std::invalid_argument("Ошибка: Название вида спорта не может быть пустым.");
+            throw("Ошибка: Название вида спорта не может быть пустым.");
 
         int sportIndex = getOrCreateSport(currentSportName);
 
@@ -47,12 +47,12 @@ public:
 
         int athleteIndex = findAthlete(currentAthleteName);
         if (athleteIndex == -1)
-            throw std::runtime_error("Ошибка: Спортсмен не найден.");
+            throw("Ошибка: Спортсмен не найден.");
 
         std::cout << "Введите новое название вида спорта: ";
         std::getline(std::cin, newSportName);
         if (newSportName.empty())
-            throw std::invalid_argument("Ошибка: Название не может быть пустым.");
+            throw("Ошибка: Название не может быть пустым.");
 
         int newSportIndex = getOrCreateSport(newSportName);
 
@@ -78,7 +78,7 @@ public:
 
         int sportIndex = findSport(currentSportName);
         if (sportIndex == -1)
-            throw std::runtime_error("Ошибка: Вид спорта не найден.");
+            throw("Ошибка: Вид спорта не найден.");
 
         std::cout << "\n--- Спортсмены в виде спорта '" << currentSportName << "' ---" << std::endl;
         bool found = false;
@@ -129,7 +129,7 @@ public:
 
         int sportIndex = findSport(currentSportName);
         if (sportIndex == -1)
-            throw std::runtime_error("Ошибка: Вид спорта не найден.");
+            throw("Ошибка: Вид спорта не найден.");
 
         std::vector<std::pair<int, int>> filteredLinks;
         for (auto &link : links)
@@ -206,33 +206,62 @@ private:
     }
 
     /**
-     * @brief Часть алгоритма Quick Sort.
+     * @brief Часть алгоритма Quick Sort. Перераспределяет элементы относительно опорного.
+     * @param linksToSort Ссылка на вектор, который нужно отсортировать.
+     * @param low Начальный индекс подмассива.
+     * @param high Конечный индекс подмассива.
+     * @return Индекс, на котором теперь стоит опорный элемент.
      */
     int partitionLinks(std::vector<std::pair<int, int>> &linksToSort, int low, int high)
     {
+        // 1. Выбираем опорный элемент (pivot). В нашем случае берем последний элемент в текущем диапазоне.
+        //    Мы сравниваем не сами пары {индекс, индекс}, а ФИО спортсменов, на которые они указывают.
         std::string pivot_name = athleteNames[linksToSort[high].first];
+
+        // 2. 'i' - это индекс последнего элемента, который МЕНЬШЕ опорного.
+        //    Изначально таких элементов нет, поэтому 'i' указывает на позицию перед началом диапазона.
         int i = (low - 1);
+
+        // 3. Проходим по всем элементам диапазона, КРОМЕ опорного (который в конце).
         for (int j = low; j <= high - 1; j++)
         {
+            // 4. Сравниваем текущий элемент ('j') с опорным.
             if (athleteNames[linksToSort[j].first] <= pivot_name)
             {
-                i++;
-                std::swap(linksToSort[i], linksToSort[j]);
+                // 5. Если текущий элемент меньше или равен опорному:
+                i++;                                       // Сначала сдвигаем границу "меньшей" группы.
+                std::swap(linksToSort[i], linksToSort[j]); // Затем меняем текущий элемент с первым элементом "большей" группы.
+                                                           // Таким образом, "маленький" элемент перемещается в "маленькую" группу.
             }
         }
+
+        // 6. После цикла все элементы до 'i' включительно меньше опорного.
+        //    Ставим опорный элемент на его законное место - сразу после "меньшей" группы.
         std::swap(linksToSort[i + 1], linksToSort[high]);
+
+        // 7. Возвращаем индекс, на котором теперь стоит опорный элемент.
         return (i + 1);
     }
 
     /**
-     * @brief Собственная реализация Quick Sort.
+     * @brief Собственная рекурсивная реализация Quick Sort.
+     * @param linksToSort Ссылка на вектор, который нужно отсортировать.
+     * @param low Начальный индекс подмассива.
+     * @param high Конечный индекс подмассива.
      */
     void customQuickSortLinks(std::vector<std::pair<int, int>> &linksToSort, int low, int high)
     {
+        // Условие выхода из рекурсии: если в подмассиве 0 или 1 элемент, он уже отсортирован.
         if (low < high)
         {
+            // 1. Разделяем массив на две части относительно опорного элемента.
+            //    'pi' - это индекс, на котором опорный элемент оказался после разделения.
             int pi = partitionLinks(linksToSort, low, high);
+
+            // 2. Рекурсивно вызываем сортировку для двух полученных подмассивов:
+            //    - для левой части (элементы до опорного)
             customQuickSortLinks(linksToSort, low, pi - 1);
+            //    - для правой части (элементы после опорного)
             customQuickSortLinks(linksToSort, pi + 1, high);
         }
     }
@@ -258,7 +287,6 @@ void printMenu()
  */
 int main()
 {
-    setlocale(LC_ALL, "Russian");
     SportsManager manager;
     int choice;
     while (true)
@@ -298,9 +326,17 @@ int main()
                 std::cout << "Неверный выбор.\n";
             }
         }
+        catch (char *e)
+        {
+            std::cerr << "Произошла ошибка: " << e << std::endl;
+        }
         catch (std::exception &e)
         {
             std::cerr << "Произошла ошибка: " << e.what() << std::endl;
+        }
+        catch (...)
+        {
+            std::cout << "Произошла неизвестная ошибка." << std::endl;
         }
     }
     return 0;
